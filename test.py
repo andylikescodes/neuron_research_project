@@ -3,7 +3,7 @@
 # Cells can be grab from the data set anytime. Just enter the session
 # id and the channel and cluster id for the cells
 
-# It will be continuely refined and a more organized class for analysis
+# It will be continuously refined and a more organized class for analysis
 # will be added later.
 
 from data import NOData

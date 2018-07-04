@@ -78,3 +78,15 @@ class Trial:
         timestamps_within_window = self._trial_timestamps[(self._trial_timestamps > start) *
                                                           (self._trial_timestamps < end)]
         return len(timestamps_within_window) / ((end - start) / 1000000)
+
+    def baseline_spike_rate(self):
+        """
+        Calculate the spike count rate in for baseline period (1000 ms before stim on)
+        :return: spike count rate for baseline
+        """
+        start = 0
+        end = 1000 * 1000
+
+        timestamps_within_window = self._baseline_timestamps[(self._baseline_timestamps > start) *
+                                                             (self._baseline_timestamps < end)]
+        return len(timestamps_within_window) / ((end - start) / 1000000)

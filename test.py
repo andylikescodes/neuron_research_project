@@ -13,13 +13,51 @@ from operator import itemgetter
 
 NO_data = NOData()
 
-cell = NO_data.pop_cell(5, (1, 1))
+# cell = NO_data.pop_cell(58, (9, 1))
 
-trials = (trial.trial_timestamps for trial in cell.trials)
 
-for trial in trials:
-    print(trial)
+n_total = 0
+vs_cells = []
+ms_cells = []
+error_list = []
 
+cell = NO_data.pop_cell(58, (9,1))
+
+# for session_nr in NO_data.session_nrs:
+#     print('processing session number: ' + str(session_nr))
+#     print('session name' + NO_data.sessions[session_nr]['session'])
+#     cell_list = NO_data.ls_cells(session_nr)
+#     if cell_list:
+#             for cell_id in NO_data.ls_cells(session_nr):
+#                 print('processing cell id: (' + str(cell_id[0]) + ', ' + str(cell_id[1]) + ')')
+#
+#                 cell = NO_data.pop_cell(session_nr, cell_id)
+#                 if cell:
+#                     print('running ms test')
+#                     p_ms = cell.ms_test(1000)
+#                     print('p val: ' + str(p_ms))
+#                     if p_ms < 0.05:
+#                         ms_cells.append(cell)
+#
+#                     print('running vs test')
+#                     p_vs = cell.vs_test()
+#                     print('p val: ' + str(p_vs))
+#                     if p_vs < 0.05:
+#                         vs_cells.append(cell)
+#                     n_total = n_total + 1
+#
+#                     print(" ")
+#                     print(" ")
+#                 else:
+#                     error_list.append((session_nr, cell_id))
+#                     continue
+#     else:
+#         error_list.append(session_nr)
+#         continue
+
+
+
+# 98(4,1) 85(3,1) 58(9,1) somethings wrong with these
 # trials = NO_data.get_trials_from_cell(cell)
 
 # print(trials)

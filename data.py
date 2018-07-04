@@ -54,11 +54,15 @@ class NOData:
                                     task_descr, variant, block_id_learn, block_id_recog, patient_nb,
                                     patient_session, diagnosis_code)
 
-    def _construct_data_path(self, session_name, target_folder):
+    def _construct_data_path(self, session_nr, target_folder):
         """
         A method used to construct paths to desired data.
         """
-        path = os.path.join(self.path, target_folder, session_name, 'NO')
+
+        session_name = self.sessions[session_nr]['session']
+        task = self.sessions[session_nr]['task_descr']
+
+        path = os.path.join(self.path, target_folder, session_name, task)
         return path
 
     def _extract_event_periods(self, events, experiment_type='recog'):
@@ -80,9 +84,19 @@ class NOData:
                                            (events[1] == self._markers['response_5']) |
                                            (events[1] == self._markers['response_6'])]
 
+        if recog_response_events.shape[0] != 100:
+            recog_response_events = recog_response_events.drop_duplicates(0)
+
         if (stimulus_on_events.shape[0] != 100) | (stimulus_off_events.shape[0] != 100) | \
-                (question_on_events.shape[0] != 100) | (trial_end_events.shape[0] != 100):
-            raise ValueError('Somethings wrong with the event data, each event should have 100 trials.')
+            (question_on_events.shape[0] != 100) | (trial_end_events.shape[0] != 100) | \
+            (recog_response_events.shape[0] != 100):
+            print('Somethings wrong with the event data, each event should have 100 trials.')
+
+        print(stimulus_on_events.shape[0])
+        print(stimulus_off_events.shape[0])
+        print(question_on_events.shape[0])
+        print(trial_end_events.shape[0])
+        print(recog_response_events.shape[0])
 
         events_time_points = pd.DataFrame({'stimulus_on': np.asarray(stimulus_on_events[0]),
                                            'stimulus_off': np.asarray(stimulus_off_events[0]),
@@ -101,7 +115,7 @@ class NOData:
         session_name = self.sessions[session_nr]['session']
         experiment_id_recog = self.sessions[session_nr]['experiment_id_recog']
         experiment_id_learn = self.sessions[session_nr]['experiment_id_learn']
-        event_path = os.path.join(self._construct_data_path(session_name, 'events'), 'eventsRaw.mat')
+        event_path = os.path.join(self._construct_data_path(session_nr, 'events'), 'eventsRaw.mat')
 
         events = pd.DataFrame(loadmat(event_path)['events'])
         if experiment_type == 'recog':
@@ -213,14 +227,17 @@ class NOData:
         output:
             cell_list = a list of tuples (channel_nr, cluster_id)
         """
-
-        session_name = self.sessions[session_nr]['session']
-        brain_area_file_path = os.path.join(self._construct_data_path(session_name, 'events'), 'brainArea.mat')
-        brain_area = loadmat(brain_area_file_path)['brainArea']
-        cell_list = []
-        for i in range(0, brain_area.shape[0]):
-            cell_list.append((brain_area[i][0], brain_area[i][1]))
-        return cell_list
+        try:
+            brain_area_file_path = os.path.join(self._construct_data_path(session_nr, 'events'), 'brainArea.mat')
+            brain_area = loadmat(brain_area_file_path)['brainArea']
+            cell_list = []
+            for i in range(0, brain_area.shape[0]):
+                if (brain_area[i][0] != 0) & (brain_area[i][1] != 0):
+                    cell_list.append((brain_area[i][0], brain_area[i][1]))
+            return cell_list
+        except Exception:
+            print('somethings wrong with the data: Value Error')
+            return None
 
     def pop_cell(self, session_nr, channelnr_clusterid):
         """
@@ -232,16 +249,15 @@ class NOData:
         output:
             cell = a cell object
         """
-
         session_name = self.sessions[session_nr]['session']
-        brain_area_file_path = os.path.join(self._construct_data_path(session_name, 'events'), 'brainArea.mat')
+        brain_area_file_path = os.path.join(self._construct_data_path(session_nr, 'events'), 'brainArea.mat')
         brain_area = loadmat(brain_area_file_path)['brainArea']
         df_brain_area = pd.DataFrame(brain_area)
 
         brain_area_cell = df_brain_area.loc[
             (df_brain_area[0] == channelnr_clusterid[0]) & (df_brain_area[1] == channelnr_clusterid[1])]
 
-        cell_path = os.path.join(self._construct_data_path(session_name, 'sorted'),
+        cell_path = os.path.join(self._construct_data_path(session_nr, 'sorted'),
                                  'A' + str(channelnr_clusterid[0]) + '_cells.mat')
 
         raw_spike_timestamps = self._load_cell_data(cell_path, channelnr_clusterid[1])

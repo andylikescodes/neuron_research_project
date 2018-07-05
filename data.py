@@ -77,33 +77,15 @@ class NOData:
         stimulus_off_events = events.loc[events[1] == self._markers['stimulus_off']]
         question_on_events = events.loc[events[1] == self._markers['delay1_off']]
         trial_end_events = events.loc[events[1] == self._markers['delay2_off']]
-        recog_response_events = events.loc[(events[1] == self._markers['response_1']) |
-                                           (events[1] == self._markers['response_2']) |
-                                           (events[1] == self._markers['response_3']) |
-                                           (events[1] == self._markers['response_4']) |
-                                           (events[1] == self._markers['response_5']) |
-                                           (events[1] == self._markers['response_6'])]
-
-        if recog_response_events.shape[0] != 100:
-            recog_response_events = recog_response_events.drop_duplicates(0)
 
         if (stimulus_on_events.shape[0] != 100) | (stimulus_off_events.shape[0] != 100) | \
-            (question_on_events.shape[0] != 100) | (trial_end_events.shape[0] != 100) | \
-            (recog_response_events.shape[0] != 100):
+            (question_on_events.shape[0] != 100) | (trial_end_events.shape[0] != 100):
             print('Somethings wrong with the event data, each event should have 100 trials.')
 
-        print(stimulus_on_events.shape[0])
-        print(stimulus_off_events.shape[0])
-        print(question_on_events.shape[0])
-        print(trial_end_events.shape[0])
-        print(recog_response_events.shape[0])
-
-        events_time_points = pd.DataFrame({'stimulus_on': np.asarray(stimulus_on_events[0]),
-                                           'stimulus_off': np.asarray(stimulus_off_events[0]),
-                                           'question_on': np.asarray(question_on_events[0]),
-                                           'trial_end': np.asarray(trial_end_events[0]),
-                                           # raw response from 31 - 36, designed response 1 - 6
-                                           'recog_responses': np.asarray(recog_response_events[1] - 30)})
+        events_time_points = {'stimulus_on': np.asarray(stimulus_on_events[0]),
+                              'stimulus_off': np.asarray(stimulus_off_events[0]),
+                              'question_on': np.asarray(question_on_events[0]),
+                              'trial_end': np.asarray(trial_end_events[0])}
         # TODO experiment_type = 'learn'
 
         return events_time_points
@@ -140,7 +122,7 @@ class NOData:
         block_id_recog = self.sessions[session_nr]['block_id_recog']
         block_id_learn = self.sessions[session_nr]['block_id_learn']
         variant = self.sessions[session_nr]['variant']
-        filename = 's'
+        filename = ''
         if variant == 1:
             filename = 'NewOldDelay_v3.mat'
             filename2 = 'NewOldDelayStimuli.mat'
@@ -167,19 +149,21 @@ class NOData:
 
         events = self._get_event_data(session_nr, experiment_type=experiment_type)
         events_time_points = self._extract_event_periods(events, experiment_type=experiment_type)
-        recog_responses = events_time_points['recog_responses']
+
+        # Get recog response from log file
+        experiment_id = self.sessions[session_nr]['experiment_id_recog']
+        log_file_path = os.path.join(self._construct_data_path(session_nr, 'events'), 'newold'+str(experiment_id)+'.txt')
+        log_file = pd.read_csv(log_file_path, sep=';', header=None)
+        log_events = np.asarray(log_file[1])
+        recog_responses = log_events[(log_events >= 31)*(log_events <= 36)] - 30
 
         # Create the trial list
         trials = []
         for i in range(0, 100):
-            trial_start = events_time_points.iloc[i, 0]
-            trial_end = events_time_points.iloc[i, 3]
-            trial_duration = trial_end - trial_start
             baseline_offset = 1000000
-
-            baseline_timestamps = raw_spike_timestamps[(raw_spike_timestamps > (trial_start - baseline_offset)) *
-                                                       (raw_spike_timestamps <= trial_start)]\
-                                                        - (trial_start - baseline_offset)
+            trial_start = events_time_points['stimulus_on'][i] - baseline_offset
+            trial_end = events_time_points['trial_end'][i]
+            trial_duration = trial_end - trial_start
 
             trial_timestamps = raw_spike_timestamps[(raw_spike_timestamps > trial_start) *
                                                     (raw_spike_timestamps <= trial_end)] - trial_start
@@ -193,7 +177,7 @@ class NOData:
             response_recog = recog_responses[i]
 
             trial = Trial(category, new_old_recog, response_recog, category_name,
-                          file_path, stimuli_recog_id, trial_duration, baseline_timestamps, trial_timestamps)
+                          file_path, stimuli_recog_id, trial_duration,  trial_timestamps)
             trials.append(trial)
 
         return trials
@@ -227,17 +211,14 @@ class NOData:
         output:
             cell_list = a list of tuples (channel_nr, cluster_id)
         """
-        try:
-            brain_area_file_path = os.path.join(self._construct_data_path(session_nr, 'events'), 'brainArea.mat')
-            brain_area = loadmat(brain_area_file_path)['brainArea']
-            cell_list = []
-            for i in range(0, brain_area.shape[0]):
-                if (brain_area[i][0] != 0) & (brain_area[i][1] != 0):
-                    cell_list.append((brain_area[i][0], brain_area[i][1]))
-            return cell_list
-        except Exception:
-            print('somethings wrong with the data: Value Error')
-            return None
+        brain_area_file_path = self._construct_brain_area_path(session_nr)
+
+        brain_area = loadmat(brain_area_file_path)['brainArea']
+        cell_list = []
+        for i in range(0, brain_area.shape[0]):
+            if (brain_area[i][0] != 0) & (brain_area[i][1] != 0):
+                cell_list.append((brain_area[i][0], brain_area[i][1]))
+        return cell_list
 
     def pop_cell(self, session_nr, channelnr_clusterid):
         """
@@ -250,7 +231,7 @@ class NOData:
             cell = a cell object
         """
         session_name = self.sessions[session_nr]['session']
-        brain_area_file_path = os.path.join(self._construct_data_path(session_nr, 'events'), 'brainArea.mat')
+        brain_area_file_path = self._construct_brain_area_path(session_nr)
         brain_area = loadmat(brain_area_file_path)['brainArea']
         df_brain_area = pd.DataFrame(brain_area)
 
@@ -259,16 +240,25 @@ class NOData:
 
         cell_path = os.path.join(self._construct_data_path(session_nr, 'sorted'),
                                  'A' + str(channelnr_clusterid[0]) + '_cells.mat')
-
-        raw_spike_timestamps = self._load_cell_data(cell_path, channelnr_clusterid[1])
-
-        trials = self._get_trials_data(session_nr, raw_spike_timestamps)
-        cell = Cell(cell_path, session_nr, session_name, *np.asarray(brain_area_cell), raw_spike_timestamps, trials)
+        if os.path.isfile(cell_path):
+            raw_spike_timestamps = self._load_cell_data(cell_path, channelnr_clusterid[1])
+            trials = self._get_trials_data(session_nr, raw_spike_timestamps)
+            cell = Cell(cell_path, session_nr, session_name, *np.asarray(brain_area_cell), raw_spike_timestamps, trials)
+        else:
+            print('souce file does not exist, return empty cell.')
+            cell = None
         return cell
 
     def test(self):
         pass
 
+    def _construct_brain_area_path(self, session_nr):
+        path = os.path.join(self._construct_data_path(session_nr, 'events'), 'brainAreaNEW.mat')
+        if os.path.isfile(path):
+            brain_area_file_path = path
+        else:
+            brain_area_file_path = os.path.join(self._construct_data_path(session_nr, 'events'), 'brainArea.mat')
+        return brain_area_file_path
     # Static helper methods
     @staticmethod
     def _make_sess_dict(session, session_id, experiment_id_learn, experiment_id_recog,

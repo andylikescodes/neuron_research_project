@@ -3,7 +3,7 @@
 
 class Trial:
     def __init__(self, category, new_old_recog, response_recog, category_name,
-                 file_path, stimuli_id, trial_duration, baseline_timestamps, trial_timestamps):
+                 file_path, stimuli_id, trial_duration, trial_timestamps):
         self._category = category
         self._new_old_recog = new_old_recog
         self._response_recog = response_recog
@@ -13,11 +13,6 @@ class Trial:
         self._trial_duration = trial_duration
         self._trial_timestamps = trial_timestamps
         self._total_spike_counts = len(self._trial_timestamps)
-        self._baseline_timestamps = baseline_timestamps
-
-    @property
-    def baseline_timestamps(self):
-        return self._baseline_timestamps
 
     @property
     def category(self):
@@ -77,16 +72,4 @@ class Trial:
 
         timestamps_within_window = self._trial_timestamps[(self._trial_timestamps > start) *
                                                           (self._trial_timestamps < end)]
-        return len(timestamps_within_window) / ((end - start) / 1000000)
-
-    def baseline_spike_rate(self):
-        """
-        Calculate the spike count rate in for baseline period (1000 ms before stim on)
-        :return: spike count rate for baseline
-        """
-        start = 0
-        end = 1000 * 1000
-
-        timestamps_within_window = self._baseline_timestamps[(self._baseline_timestamps > start) *
-                                                             (self._baseline_timestamps < end)]
         return len(timestamps_within_window) / ((end - start) / 1000000)

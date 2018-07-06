@@ -11,21 +11,28 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 from operator import itemgetter
+import matplotlib
+plt.switch_backend('module://backend_interagg')
 
 NO_data = NOData()
 
 # cell = NO_data.pop_cell(58, (9, 1))
-all_cell = []
 
-for session_nr in NO_data.session_nrs:
-    print('========> session number: ' + str(session_nr))
-    print('===> session name' + NO_data.sessions[session_nr]['session'])
-    cell_list = NO_data.ls_cells(session_nr)
-    for cell_id in NO_data.ls_cells(session_nr):
-        print('=> cell id: (' + str(cell_id[0]) + ', ' + str(cell_id[1]) + ')')
-        cell = NO_data.pop_cell(session_nr, cell_id)
-        if cell:
-            all_cell.append(cell)
+f_all = open('data/all_cells.p', 'rb')
+all_cells = pickle.load(f_all)
+
+all_cells[0].psth('visual')
+all_cells[0].raster()
+
+# for session_nr in NO_data.session_nrs:
+#     print('========> session number: ' + str(session_nr))
+#     print('===> session name' + NO_data.sessions[session_nr]['session'])
+#     cell_list = NO_data.ls_cells(session_nr)
+#     for cell_id in NO_data.ls_cells(session_nr):
+#         print('=> cell id: (' + str(cell_id[0]) + ', ' + str(cell_id[1]) + ')')
+#         cell = NO_data.pop_cell(session_nr, cell_id)
+#         if cell:
+#             all_cell.append(cell)
 
 # f = open('vs_cells.p', 'rb')
 # vs_cells = pickle.load(f)

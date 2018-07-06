@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
+
 class Cell:
 
     def __init__(self, cell_path, session_nr, session_name, cell_info, raw_spike_timestamps, trials):

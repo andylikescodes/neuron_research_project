@@ -16,6 +16,21 @@ class Cell:
         self._brain_area_id = cell_info[3]
         self._raw_spike_timestamps = raw_spike_timestamps
         self._trials = trials
+        self._p_vs = self._vs_test()
+        self._p_ms = self._ms_test(1000)
+        self._p_vs_baseline = self._baseline_test()
+
+    @property
+    def p_vs(self):
+        return self._p_vs
+
+    @property
+    def p_ms(self):
+        return self._p_ms
+
+    @property
+    def p_vs_baseline(self):
+        return self._p_vs_baseline
 
     @property
     def data_path(self):
@@ -53,7 +68,7 @@ class Cell:
     def trials(self):
         return self._trials
 
-    def vs_test(self):
+    def _vs_test(self):
         """
         Anova test for stimuli categories
         :return: p value for the anova test
@@ -77,7 +92,7 @@ class Cell:
                 cat_5.append(trial.win_spike_rate(1200, 2700))
         return f_oneway(cat_1, cat_2, cat_3, cat_4, cat_5)[1]
 
-    def baseline_test(self):
+    def _baseline_test(self):
         """
         Anova test to test the difference between the baseline rate and the stim on rate
         :return: p value of the anova test
@@ -90,7 +105,7 @@ class Cell:
             stim_period.append(trial.win_spike_rate(1200, 2700))
         return f_oneway(baseline, stim_period)[1]
 
-    def ms_test(self, n):
+    def _ms_test(self, n):
         """
         A bootstrap test for new old test
         :param n: number of bootstraps
@@ -144,73 +159,118 @@ class Cell:
         plt.xlim(xlim[0], xlim[1])
         plt.show()
 
-    def psth(self, bin_size=250, xlim=(0, 2500), height_light_range=(1000, 2000)):
-        trials = sorted(self._trials, key=lambda trial: trial.category)
-        colors1 = np.array([[1, 0, 0],
-                            [0, 1, 1],
-                            [0, 0, 1],
-                            [0, 1, 0],
-                            [1, 0, 1]])
-        cat1_name = trials[0].category_name
-        cat2_name = trials[20].category_name
-        cat3_name = trials[40].category_name
-        cat4_name = trials[60].category_name
-        cat5_name = trials[80].category_name
-        mean_rates = np.zeros([5, 10])
-        x_plot = np.zeros(10)
-        for i in range(0, 10):
-            # meant rates for cat 1
-            mean_rate = 0
-            start = i * 250
-            end = (i + 1) * 250
-            x_plot[i] = start + 125
-            for trial in trials[0:20]:
-                mean_rate = mean_rate + trial.win_spike_rate(start, end)
-            mean_rate = mean_rate/100
-            mean_rates[0][i] = mean_rate
-            # meant rates for cat 2
-            mean_rate = 0
-            for trial in trials[20:40]:
-                mean_rate = mean_rate + trial.win_spike_rate(start, end)
-            mean_rate = mean_rate/100
-            mean_rates[1][i] = mean_rate
+    def psth(self, cell_type='visual', bin_size=250, xlim=(0, 2500), height_light_range=(1000, 2000)):
 
-            # meant rates for cat 3
-            mean_rate = 0
-            for trial in trials[40:60]:
-                mean_rate = mean_rate + trial.win_spike_rate(start, end)
-            mean_rate = mean_rate/100
-            mean_rates[2][i] = mean_rate
+        n_x = int(np.floor((xlim[1] - xlim[0]) / bin_size))
 
-            # meant rates for cat 4
-            mean_rate = 0
-            for trial in trials[60:80]:
-                mean_rate = mean_rate + trial.win_spike_rate(start, end)
-            mean_rate = mean_rate/100
-            mean_rates[3][i] = mean_rate
+        if cell_type == 'visual':
+            trials = sorted(self._trials, key=lambda trial: trial.category)
 
-            # meant rates for cat 5
-            mean_rate = 0
-            for trial in trials[80:100]:
-                mean_rate = mean_rate + trial.win_spike_rate(start, end)
-            mean_rate = mean_rate/100
-            mean_rates[4][i] = mean_rate
+            colors1 = np.array([[1, 0, 0],
+                                [0, 1, 1],
+                                [0, 0, 1],
+                                [0, 1, 0],
+                                [1, 0, 1]])
+            cat1_name = trials[0].category_name
+            cat2_name = trials[20].category_name
+            cat3_name = trials[40].category_name
+            cat4_name = trials[60].category_name
+            cat5_name = trials[80].category_name
+            mean_rates = np.zeros([5, n_x])
 
-        plt_df = pd.DataFrame({'Time (ms)': x_plot,
-                               cat1_name: mean_rates[0][:],
-                               cat2_name: mean_rates[1][:],
-                               cat3_name: mean_rates[2][:],
-                               cat4_name: mean_rates[3][:],
-                               cat5_name: mean_rates[4][:]})
+            x_plot = np.zeros(n_x)
+            for i in range(0, n_x):
+                # meant rates for cat 1
+                mean_rate = 0
+                start = i * bin_size
+                end = (i + 1) * bin_size
+                x_plot[i] = start + bin_size/2
+                for trial in trials[0:20]:
+                    mean_rate = mean_rate + trial.win_spike_rate(start, end)
+                mean_rate = mean_rate/20
+                mean_rates[0][i] = mean_rate
+                # meant rates for cat 2
+                mean_rate = 0
+                for trial in trials[20:40]:
+                    mean_rate = mean_rate + trial.win_spike_rate(start, end)
+                mean_rate = mean_rate/20
+                mean_rates[1][i] = mean_rate
 
-        plt.plot('Time (ms)', cat1_name, data=plt_df, marker='x', color=colors1[0])
-        plt.plot('Time (ms)', cat2_name, data=plt_df, marker='x', color=colors1[1])
-        plt.plot('Time (ms)', cat3_name, data=plt_df, marker='x', color=colors1[2])
-        plt.plot('Time (ms)', cat4_name, data=plt_df, marker='x', color=colors1[3])
-        plt.plot('Time (ms)', cat5_name, data=plt_df, marker='x', color=colors1[4])
-        plt.xlim(xlim[0], xlim[1])
-        plt.axvspan(height_light_range[0], height_light_range[1], color='grey', alpha=0.1)
-        plt.legend()
-        plt.show()
+                # meant rates for cat 3
+                mean_rate = 0
+                for trial in trials[40:60]:
+                    mean_rate = mean_rate + trial.win_spike_rate(start, end)
+                mean_rate = mean_rate/20
+                mean_rates[2][i] = mean_rate
+
+                # meant rates for cat 4
+                mean_rate = 0
+                for trial in trials[60:80]:
+                    mean_rate = mean_rate + trial.win_spike_rate(start, end)
+                mean_rate = mean_rate/20
+                mean_rates[3][i] = mean_rate
+
+                # meant rates for cat 5
+                mean_rate = 0
+                for trial in trials[80:100]:
+                    mean_rate = mean_rate + trial.win_spike_rate(start, end)
+                mean_rate = mean_rate/20
+                mean_rates[4][i] = mean_rate
+
+            plt_df = pd.DataFrame({'Time (ms)': x_plot,
+                                   cat1_name: mean_rates[0][:],
+                                   cat2_name: mean_rates[1][:],
+                                   cat3_name: mean_rates[2][:],
+                                   cat4_name: mean_rates[3][:],
+                                   cat5_name: mean_rates[4][:]})
+
+            plt.plot('Time (ms)', cat1_name, data=plt_df, marker='x', color=colors1[0])
+            plt.plot('Time (ms)', cat2_name, data=plt_df, marker='x', color=colors1[1])
+            plt.plot('Time (ms)', cat3_name, data=plt_df, marker='x', color=colors1[2])
+            plt.plot('Time (ms)', cat4_name, data=plt_df, marker='x', color=colors1[3])
+            plt.plot('Time (ms)', cat5_name, data=plt_df, marker='x', color=colors1[4])
+            plt.xlim(xlim[0], xlim[1])
+            plt.axvspan(height_light_range[0], height_light_range[1], color='grey', alpha=0.1)
+            plt.legend()
+            plt.show()
+
+        elif cell_type == 'memory':
+            trials = sorted(self._trials, key=lambda trial: trial.response_recog)
+            colors1 = np.array([[1, 0, 0],
+                                [0, 1, 1],
+                                [0, 0, 1],
+                                [0, 1, 0],
+                                [1, 0, 1]])
+            cat1_name = 'New'
+            cat2_name = 'Old'
+            mean_rates = np.zeros([2, n_x])
+            x_plot = np.zeros(n_x)
+            for i in range(0, n_x):
+                # meant rates for cat 1
+                mean_rate = 0
+                start = i * bin_size
+                end = (i + 1) * bin_size
+                x_plot[i] = start + bin_size/2
+                for trial in trials[0:50]:
+                    mean_rate = mean_rate + trial.win_spike_rate(start, end)
+                mean_rate = mean_rate / 20
+                mean_rates[0][i] = mean_rate
+                # meant rates for cat 2
+                mean_rate = 0
+                for trial in trials[50:100]:
+                    mean_rate = mean_rate + trial.win_spike_rate(start, end)
+                mean_rate = mean_rate / 20
+                mean_rates[1][i] = mean_rate
+
+            plt_df = pd.DataFrame({'Time (ms)': x_plot,
+                                   cat1_name: mean_rates[0][:],
+                                   cat2_name: mean_rates[1][:]})
+
+            plt.plot('Time (ms)', cat1_name, data=plt_df, marker='x', color=colors1[0])
+            plt.plot('Time (ms)', cat2_name, data=plt_df, marker='x', color=colors1[1])
+            plt.xlim(xlim[0], xlim[1])
+            plt.axvspan(height_light_range[0], height_light_range[1], color='grey', alpha=0.1)
+            plt.legend()
+            plt.show()
 
 

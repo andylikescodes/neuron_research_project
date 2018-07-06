@@ -15,38 +15,42 @@ from operator import itemgetter
 NO_data = NOData()
 
 # cell = NO_data.pop_cell(58, (9, 1))
+all_cell = []
 
+for session_nr in NO_data.session_nrs:
+    print('========> session number: ' + str(session_nr))
+    print('===> session name' + NO_data.sessions[session_nr]['session'])
+    cell_list = NO_data.ls_cells(session_nr)
+    for cell_id in NO_data.ls_cells(session_nr):
+        print('=> cell id: (' + str(cell_id[0]) + ', ' + str(cell_id[1]) + ')')
+        cell = NO_data.pop_cell(session_nr, cell_id)
+        if cell:
+            all_cell.append(cell)
 
-f = open('vs_cells.p', 'rb')
-vs_cells = pickle.load(f)
-
-selected_cells = []
-
-for i in range(len(vs_cells)):
-    vs_cells[i].psth()
-# for session_nr in NO_data.session_nrs:
-#     print('========> session number: ' + str(session_nr))
-#     print('===> session name' + NO_data.sessions[session_nr]['session'])
-#     cell_list = NO_data.ls_cells(session_nr)
-#     for cell_id in NO_data.ls_cells(session_nr):
-#         print('=> cell id: (' + str(cell_id[0]) + ', ' + str(cell_id[1]) + ')')
+# f = open('vs_cells.p', 'rb')
+# vs_cells = pickle.load(f)
 #
-#         cell = NO_data.pop_cell(session_nr, cell_id)
-#         if cell:
-#             # print('running ms test')
-#             # p_ms = cell.ms_test(10000)
-#             # print('p val: ' + str(p_ms))
-#             # if p_ms < 0.05:
-#             #     ms_cells.append(cell)
+# f_ms = open('ms_cells.p', 'rb')
+# ms_cells = pickle.load(f_ms)
+
+# selected_cells = []
 #
-#             print('running vs test')
-#             p_vs = cell.vs_test()
-#             print('p val: ' + str(p_vs))
-#             if p_vs < 0.05:
-#                 vs_cells.append(cell)
-#             n_total = n_total + 1
-#         else:
-#             print('Cell source file does not exist.')
+# vs_cells[0].psth()
+# vs_cells[0].raster()
+
+# for i in range(0, len(vs_cells)):
+#     if vs_cells[i].vs_test() <= 0.000005:
+#         selected_cells.append(vs_cells[i])
+#
+# for i in range(0, len(selected_cells)):
+#     selected_cells[i].psth()
+#     selected_cells[i].raster()
+
+
+# vs_cells = []
+#
+# n_total = 0
+
 
 # 98(4,1) 85(3,1) 58(9,1) somethings wrong with these
 # trials = NO_data.get_trials_from_cell(cell)

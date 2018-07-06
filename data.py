@@ -245,7 +245,7 @@ class NOData:
             trials = self._get_trials_data(session_nr, raw_spike_timestamps)
             cell = Cell(cell_path, session_nr, session_name, *np.asarray(brain_area_cell), raw_spike_timestamps, trials)
         else:
-            print('souce file does not exist, return empty cell.')
+            print('source file does not exist, return empty cell.')
             cell = None
         return cell
 
@@ -259,6 +259,7 @@ class NOData:
         else:
             brain_area_file_path = os.path.join(self._construct_data_path(session_nr, 'events'), 'brainArea.mat')
         return brain_area_file_path
+
     # Static helper methods
     @staticmethod
     def _make_sess_dict(session, session_id, experiment_id_learn, experiment_id_recog,

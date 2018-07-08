@@ -32,7 +32,6 @@ class MaxCorrCoefClf:
         :return: a list with the classified results.
         """
         if x_test.shape[0] > 1:
-            print(self.templates)
             mean_subtracted_templates = self.templates - \
                                          np.tile(np.mean(self.templates, axis=0, keepdims=True),
                                                  [self.templates.shape[0], 1])

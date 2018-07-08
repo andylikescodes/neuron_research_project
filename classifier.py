@@ -1,4 +1,4 @@
-# All analyzing tools
+# The maximum correlation coefficient classifier
 import numpy as np
 #import pandas as pd
 
@@ -53,6 +53,11 @@ class MaxCorrCoefClf:
 
     @staticmethod
     def _randmax(template_corrcoeffs):
+        """
+        Get random indexes if there are two exact same correlation results for each trial.
+        :param template_corrcoeffs: The coefficient matrix that we want to look at.
+        :return max_indexes: The classification result
+        """
         max_indexes = []
         for i in range(template_corrcoeffs.shape[0]):
             output = template_corrcoeffs[i, :]

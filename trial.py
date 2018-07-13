@@ -2,21 +2,36 @@
 
 
 class Trial:
-    def __init__(self, category, new_old_recog, response_recog, category_name,
-                 file_path, stimuli_id, trial_duration, trial_timestamps):
-        self._category = category
+    def __init__(self, category_recog, category_name_recog, new_old_recog, response_recog, category_learn,
+                 category_name_learn, response_learn, file_path, stimuli_id, trial_timestamps_recog,
+                 trial_timestamps_learn):
+        self._category_recog = category_recog
         self._new_old_recog = new_old_recog
         self._response_recog = response_recog
-        self._category_name = category_name
+        self._category_name_recog = category_name_recog
+        self._category_learn = category_learn
+        self._category_name_learn = category_name_learn
+        self._response_learn = response_learn
         self._file_path = file_path
         self._stimuli_id = stimuli_id
-        self._trial_duration = trial_duration
-        self._trial_timestamps = trial_timestamps
-        self._total_spike_counts = len(self._trial_timestamps)
+        self._trial_timestamps_recog = trial_timestamps_recog
+        self._trial_timestamps_learn = trial_timestamps_learn
 
     @property
-    def category(self):
-        return self._category
+    def response_learn(self):
+        return self._response_learn
+
+    @property
+    def category_recog(self):
+        return self._category_recog
+
+    @property
+    def category_learn(self):
+        return self._category_learn
+
+    @property
+    def category_name_learn(self):
+        return self._category_name_learn
 
     @property
     def new_old_recog(self):
@@ -27,8 +42,8 @@ class Trial:
         return self._response_recog
 
     @property
-    def category_name(self):
-        return self._category_name
+    def category_name_recog(self):
+        return self._category_name_recog
 
     @property
     def file_path(self):
@@ -39,28 +54,34 @@ class Trial:
         return self._stimuli_id
 
     @property
-    def trial_duration(self):
-        return self._trial_duration
+    def trial_timestamps_recog(self):
+        return self._trial_timestamps_recog
 
     @property
-    def trial_timestamps(self):
-        return self._trial_timestamps
+    def trial_timestamps_learn(self):
+        return self._trial_timestamps_learn
 
-    def win_spike_count(self, win_start, win_end):
+    def win_spike_count(self, win_start, win_end, experiment_type='recog'):
         """
         Calculate the spike count in a window
         :param win_start: window starting time in millisecond
         :param win_end: window ending time in millisecond
+        :param experiment_type: the experiment type, 'recog' or 'learn'
         :return: spike count in the window
         """
         start = win_start * 1000
         end = win_end * 1000
 
-        timestamps_within_window = self._trial_timestamps[(self._trial_timestamps > start) *
-                                                          (self._trial_timestamps < end)]
+        timestamps_within_window = []
+        if experiment_type == 'recog':
+            timestamps_within_window = self._trial_timestamps_recog[(self._trial_timestamps_recog > start) *
+                                                                    (self._trial_timestamps_recog < end)]
+        elif experiment_type == 'learn':
+            timestamps_within_window = self._trial_timestamps_learn[(self._trial_timestamps_learn > start) *
+                                                                    (self._trial_timestamps_learn < end)]
         return len(timestamps_within_window)
 
-    def win_spike_rate(self, win_start, win_end):
+    def win_spike_rate(self, win_start, win_end, experiment_type='recog'):
         """
         Calculate the spike count rate in a window
         :param win_start:
@@ -70,6 +91,12 @@ class Trial:
         start = win_start * 1000
         end = win_end * 1000
 
-        timestamps_within_window = self._trial_timestamps[(self._trial_timestamps > start) *
-                                                          (self._trial_timestamps < end)]
+        timestamps_within_window = []
+        if experiment_type == 'recog':
+            timestamps_within_window = self._trial_timestamps_recog[(self._trial_timestamps_recog > start) *
+                                                                    (self._trial_timestamps_recog < end)]
+        elif experiment_type == 'learn':
+            timestamps_within_window = self._trial_timestamps_learn[(self._trial_timestamps_learn > start) *
+                                                                    (self._trial_timestamps_learn < end)]
+
         return len(timestamps_within_window) / ((end - start) / 1000000)

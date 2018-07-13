@@ -65,11 +65,10 @@ class NOData:
         path = os.path.join(self.path, target_folder, session_name, task)
         return path
 
-    def _extract_event_periods(self, events, experiment_type='recog'):
+    def _extract_event_periods(self, events):
         """
         A method to separate the important events from the raw event files.
         :param events: The raw event data, output from _get_event_data
-        :param experiment_type: recog or learn experiment_type
         :return: a list of four dataframes for important events
         """
         # if experiment_type == 'recog':
@@ -82,13 +81,13 @@ class NOData:
             (question_on_events.shape[0] != 100) | (trial_end_events.shape[0] != 100):
             print('Somethings wrong with the event data, each event should have 100 trials.')
 
-        events_time_points = {'stimulus_on': np.asarray(stimulus_on_events[0]),
-                              'stimulus_off': np.asarray(stimulus_off_events[0]),
-                              'question_on': np.asarray(question_on_events[0]),
-                              'trial_end': np.asarray(trial_end_events[0])}
+        recog_events_time_points = {'stimulus_on': np.asarray(stimulus_on_events[0]),
+                                    'stimulus_off': np.asarray(stimulus_off_events[0]),
+                                    'question_on': np.asarray(question_on_events[0]),
+                                    'trial_end': np.asarray(trial_end_events[0])}
         # TODO experiment_type = 'learn'
 
-        return events_time_points
+        return recog_events_time_points
 
     def _get_event_data(self, session_nr, experiment_type='recog'):
         """
@@ -108,16 +107,16 @@ class NOData:
             raise ValueError('please enter a correct option for experiment ID, now return the entire matrix')
         return events
 
-    def _get_trials_data(self, session_nr, raw_spike_timestamps, experiment_type='recog'):
+    def _get_trials_data(self, session_nr, raw_spike_timestamps):
         """
         This method use the original experiment stimuli data set to extract the order and categories of the stimuli
         shown to each subjects. The label of the stimulus for the new old recognition task is also obtained using
         this method.
         :param session_nr: session number
         :param raw_spike_timestamps: raw_spike_timestamps from cell
-        :param experiment_type: 'recog' = recognition phase, 'learn' = learning phase
         :return: a list of all trial objects
         """
+
         # Get data from variant stimuli data set
         block_id_recog = self.sessions[session_nr]['block_id_recog']
         block_id_learn = self.sessions[session_nr]['block_id_learn']
@@ -147,37 +146,66 @@ class NOData:
 
         # Get events and raw cell data
 
-        events = self._get_event_data(session_nr, experiment_type=experiment_type)
-        events_time_points = self._extract_event_periods(events, experiment_type=experiment_type)
+        events_recog = self._get_event_data(session_nr, experiment_type='recog')
+        recog_events_time_points = self._extract_event_periods(events_recog)
+
+        events_learn = self._get_event_data(session_nr, experiment_type='learn')
+        learn_events_time_points = self._extract_event_periods(events_learn)
 
         # Get recog response from log file
-        experiment_id = self.sessions[session_nr]['experiment_id_recog']
-        log_file_path = os.path.join(self._construct_data_path(session_nr, 'events'), 'newold'+str(experiment_id)+'.txt')
+        experiment_id_recog = self.sessions[session_nr]['experiment_id_recog']
+        log_file_path = os.path.join(self._construct_data_path(session_nr, 'events'), 'newold'+str(experiment_id_recog)+'.txt')
         log_file = pd.read_csv(log_file_path, sep=';', header=None)
         log_events = np.asarray(log_file[1])
         recog_responses = log_events[(log_events >= 31)*(log_events <= 36)] - 30
 
+        # Get learn response from log file
+        experiment_id_learn = self.sessions[session_nr]['experiment_id_learn']
+        log_file_path = os.path.join(self._construct_data_path(session_nr, 'events'), 'newold'+str(experiment_id_learn)+'.txt')
+        log_file = pd.read_csv(log_file_path, sep=';', header=None)
+        log_events = np.asarray(log_file[1])
+        learn_responses = log_events[(log_events >= 20) * (log_events <= 21)] - 20
+
         # Create the trial list
         trials = []
         for i in range(0, 100):
+
+            # Processing the recog phase
+
             baseline_offset = 1000000
-            trial_start = events_time_points['stimulus_on'][i] - baseline_offset
-            trial_end = events_time_points['trial_end'][i]
+            trial_start = recog_events_time_points['stimulus_on'][i] - baseline_offset
+            trial_end = recog_events_time_points['trial_end'][i]
             trial_duration = trial_end - trial_start
 
-            trial_timestamps = raw_spike_timestamps[(raw_spike_timestamps > trial_start) *
-                                                    (raw_spike_timestamps <= trial_end)] - trial_start
+            trial_timestamps_recog = raw_spike_timestamps[(raw_spike_timestamps > trial_start) *
+                                     (raw_spike_timestamps <= trial_end)] - trial_start
 
             stimuli_recog_id = stimuli_recog_list[0][i]
-            category = category_mapping.loc[stimuli_recog_id, 1]
+            category_recog = category_mapping.loc[stimuli_recog_id, 1]
 
-            category_name = category_names[0, category - 1][0]
+            category_name_recog = category_names[0, category_recog - 1][0]
             file_path = file_mapping[0][i][0].replace('C:\code\\', '')
             new_old_recog = new_old_recog_list[0][i]
             response_recog = recog_responses[i]
 
-            trial = Trial(category, new_old_recog, response_recog, category_name,
-                          file_path, stimuli_recog_id, trial_duration,  trial_timestamps)
+            # Processing the learning phase
+
+            trial_start = learn_events_time_points['stimulus_on'][i] - baseline_offset
+            trial_end = learn_events_time_points['trial_end'][i]
+            trial_duration = trial_end - trial_start
+
+            trial_timestamps_learn = raw_spike_timestamps[(raw_spike_timestamps > trial_start) *
+                                     (raw_spike_timestamps <= trial_end)] - trial_start
+            stimuli_learn_id = stimuli_learn_list[0][i]
+            category_learn = category_mapping.loc[stimuli_learn_id, 1]
+
+            category_name_learn = category_names[0, category_learn - 1][0]
+            response_learn = learn_responses[i]
+
+            # Creating this trial object
+            trial = Trial(category_recog, category_name_recog, new_old_recog, response_recog, category_learn,
+                          category_name_learn, response_learn, file_path, stimuli_recog_id, trial_timestamps_recog,
+                          trial_timestamps_learn)
             trials.append(trial)
 
         return trials
@@ -325,5 +353,3 @@ class NOData:
         cell_raw_spike_timestamps = np.asarray(
             channel_raw_spike_timestamps.loc[channel_raw_spike_timestamps[0] == cluster_id, 2])
         return cell_raw_spike_timestamps
-
-

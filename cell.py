@@ -81,15 +81,15 @@ class Cell:
         cat_4 = []
         cat_5 = []
         for trial in trials:
-            if trial.category == 1:
+            if trial.category_recog == 1:
                 cat_1.append(trial.win_spike_rate(1200, 2700))
-            elif trial.category == 2:
+            elif trial.category_recog == 2:
                 cat_2.append(trial.win_spike_rate(1200, 2700))
-            elif trial.category == 3:
+            elif trial.category_recog == 3:
                 cat_3.append(trial.win_spike_rate(1200, 2700))
-            elif trial.category == 4:
+            elif trial.category_recog == 4:
                 cat_4.append(trial.win_spike_rate(1200, 2700))
-            elif trial.category == 5:
+            elif trial.category_recog == 5:
                 cat_5.append(trial.win_spike_rate(1200, 2700))
         return f_oneway(cat_1, cat_2, cat_3, cat_4, cat_5)[1]
 
@@ -165,18 +165,18 @@ class Cell:
         n_x = int(np.floor((xlim[1] - xlim[0]) / bin_size))
 
         if cell_type == 'visual':
-            trials = sorted(self._trials, key=lambda trial: trial.category)
+            trials = sorted(self._trials, key=lambda trial: trial.category_recog)
 
             colors1 = np.array([[1, 0, 0],
                                 [0, 1, 1],
                                 [0, 0, 1],
                                 [0, 1, 0],
                                 [1, 0, 1]])
-            cat1_name = trials[0].category_name
-            cat2_name = trials[20].category_name
-            cat3_name = trials[40].category_name
-            cat4_name = trials[60].category_name
-            cat5_name = trials[80].category_name
+            cat1_name = trials[0].category_name_recog
+            cat2_name = trials[20].category_name_recog
+            cat3_name = trials[40].category_name_recog
+            cat4_name = trials[60].category_name_recog
+            cat5_name = trials[80].category_name_recog
             mean_rates = np.zeros([5, n_x])
 
             x_plot = np.zeros(n_x)
